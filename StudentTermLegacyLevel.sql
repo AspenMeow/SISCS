@@ -14,10 +14,11 @@ ct.acad_level_bot,
 tm.descrshort as term_descrshort,
 (case 
     when ct.ELIG_TO_ENROLL='N' then 'N'
+    --adjust the priority 
+    when ct.withdraw_code='WDR' then 'W'
     when en.enrl=1 then 'E'
     when en.drp=0 then 'D'
     when en.waitlist=0 then 'L'
-    when ct.withdraw_code='WDR' then 'W'
     when en.cancl=0 then 'C'
     when en.disenrl=0 then 'S'
    when en.emplid is null then 'A'
@@ -75,8 +76,8 @@ and ct.acad_career= prim.acad_career
 and ct.institution= prim.institution
 and ct.strm=prim.strm
 --testing pids, need to remove 
-where ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349')
-
+where ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186')
+--where ct.strm=2188
 ),
 
 
