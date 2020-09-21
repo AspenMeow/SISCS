@@ -1,5 +1,6 @@
---Revised on 09/03/2020
+--Created on 09/03/2020
 --Created by Di
+--Last updated on 09/21/2020
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
 --Note : Continuing Discussion on whether to drill down to legacy student level (CPP Group) for many of those flag variables.
@@ -381,8 +382,10 @@ ct.academic_load,
 ct.academic_load_dt,
 ct.withdraw_code,
 ct.withdraw_reason,
-ct.withdraw_date
-
+ct.withdraw_date,
+--milestone COMP EXAM GRAD Only
+(case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
+milestone.date_completed as COMP_EXAM_CMPL_DATE
 from dat2 a
 left join (select emplid, strm, institution, Term_Classif_Code_Career, Term_Classif_Code_Lvl
             from dat2 
@@ -409,4 +412,27 @@ and res.effective_term= (
         and ct.institution= r.institution
       -- and ct.strm >= r.effective_term
 )
-
+--add comp exam milestones for grad
+left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,ms.milestone, ms.date_completed, ms.MILESTONE_COMPLETE
+             from SISCS.R_PRIMACY_RV a
+             left join siscs.p_stdnt_car_mlstn_v ms
+            on a.emplid=ms.emplid
+            and a.institution=ms.institution
+            and a.acad_career=ms.acad_career
+            and a.acad_plan_acad_prog=ms.acad_prog
+            and a.primary_plan_flag='Y'
+            and ms.effdt = (select max(effdt)
+                            from siscs.p_stdnt_car_mlstn_v ms1
+                            where ms.emplid=ms1.emplid
+                            and ms.institution=ms1.institution
+                            and ms.acad_career=ms1.acad_career
+                            and ms.acad_prog=ms1.acad_prog
+                            )
+) milestone
+on a.emplid=milestone.emplid
+and a.institution=milestone.institution
+and a.acad_career=milestone.acad_career
+and a.acad_prog = milestone.acad_plan_acad_prog
+and milestone.milestone='GCOMPEXAM'
+and milestone.ACAD_CAREER = 'GRAD' 
+and milestone.MILESTONE_COMPLETE = 'Y'
