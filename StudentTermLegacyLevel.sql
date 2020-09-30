@@ -1,6 +1,6 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 09/21/2020
+--Last updated on 09/28/2020
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
 --Note : Continuing Discussion on whether to drill down to legacy student level (CPP Group) for many of those flag variables.
@@ -62,6 +62,7 @@ left join
             max(case when enrl_status_reason='CANC' then 0 else 1 end) as cancl,
             max(case when ENRL_ACTN_RSN_LAST='DSEN' then 0 else 1 end) as disenrl
     from SISCS.P_STDNT_ENRL_V 
+    where EDW_ACTV_IND='Y'
     group by emplid,
     acad_career,
     institution,
@@ -77,7 +78,9 @@ and ct.acad_career= prim.acad_career
 and ct.institution= prim.institution
 and ct.strm=prim.strm
 --testing pids, need to remove 
-where ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186')
+where ct.EDW_ACTV_IND='Y' and 
+tm.EDW_ACTV_IND='Y' and
+ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186')
 --where ct.strm=2188
 ),
 
@@ -180,11 +183,14 @@ left join (
                 inner join (
                             select emplid, min(strm) as minterm, max(strm) as maxterm
                             from SISCS.P_STDNT_CAR_TERM_V
+                            where EDW_ACTV_IND='Y'
                             group by emplid
                             ) b
                 on a.strm >= minterm and a.strm <=maxterm
                 left join  termlvlenrl tm
-                on b.emplid=tm.emplid and a.strm=tm.strm and tm.enrollment_status in ('E','C','W')))
+                on b.emplid=tm.emplid and a.strm=tm.strm and tm.enrollment_status in ('E','C','W')
+                where a.EDW_ACTV_IND='Y'
+                ))
         ) d
 on  a.emplid= d.emplid
 and a.strm=d.strm
@@ -204,6 +210,7 @@ left join (select a.*, b.acad_year as cohort_entry
     on a.institution=b.institution
     and a.acad_career=b.acad_career
     and a.minstrm=b.strm
+    where b.EDW_ACTV_IND='Y'
 ) entrycohort
 on a.emplid=entrycohort.emplid
 and a.institution=entrycohort.institution
@@ -225,6 +232,7 @@ left join (select a.*, b.acad_year as cohort_entry_lvl
     on a.institution=b.institution
     and a.acad_career=b.acad_career
     and a.minstrm=b.strm
+    where b.EDW_ACTV_IND='Y'
 ) entrycohortlvl
 on a.emplid=entrycohortlvl.emplid
 and a.institution=entrycohortlvl.institution
@@ -264,7 +272,12 @@ on b.degree=d.degree
 where b.degree_dt < t.term_begin_dt
 and d.effdt = (select max(effdt) 
                 from siscs.s_degree_tbl_v d1
-                where d1.effdt<=sysdate and d.degree=d1.degree)
+                where d1.effdt<=sysdate and d.degree=d1.degree 
+                and d1.EDW_ACTV_IND='Y')
+and a.EDW_ACTV_IND='Y'
+and t.EDW_ACTV_IND='Y'
+and b.EDW_ACTV_IND='Y'
+and d.EDW_ACTV_IND='Y'
 group by a.emplid, a.strm ) exawd
 on a.emplid= exawd.emplid
 and a.strm= exawd.strm
@@ -287,8 +300,9 @@ inner join siscs.s_degree_tbl_v d
 on a.degree=d.degree
 and d.effdt = (select max(effdt) 
                 from siscs.s_degree_tbl_v d1
-                where d1.effdt<=sysdate and d.degree=d1.degree)
-
+                where d1.effdt<=sysdate and d.degree=d1.degree and d1.EDW_ACTV_IND='Y')
+where a.EDW_ACTV_IND='Y' 
+and d.EDW_ACTV_IND='Y'
 group by a.emplid,  (case when d.education_lvl='06' then 1
 when d.education_lvl='10' then 2
 when d.education_lvl='13' then 3
@@ -300,6 +314,7 @@ when d.education_lvl='15' then 8
 when d.education_lvl='21' then 9 else 0 end )) dg
 on ct.emplid=dg.emplid
 and ct.strm> dg.minterm
+where ct.EDW_ACTV_IND='Y'
 group by ct.emplid, ct.strm) intawd
 on a.emplid= intawd.emplid
 and a.strm= intawd.strm
@@ -326,10 +341,14 @@ left join (
                             and a.emplid=scar.emplid
                             and scar.acad_career= t.acad_career
                             and a.effdt <= t.term_end_dt
+                            and a.EDW_ACTV_IND='Y'
                             --and t.term_begin_dt <= sysdate
                             )
             and g.eff_status='A'
-            and  g.stdnt_group='XHON') honr
+            and  g.stdnt_group='XHON'
+            and g.EDW_ACTV_IND='Y' 
+            and scar.EDW_ACTV_IND='Y'
+            and t.EDW_ACTV_IND='Y') honr
 on a.emplid=honr.emplid
 and a.acad_career= honr.acad_career
 and a.institution=honr.institution
@@ -410,6 +429,7 @@ and res.effective_term= (
         where ct.emplid= r.emplid
         and  ct.acad_career= r.acad_career
         and ct.institution= r.institution
+        and r.EDW_ACTV_IND='Y'
       -- and ct.strm >= r.effective_term
 )
 --add comp exam milestones for grad
@@ -427,7 +447,9 @@ left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,m
                             and ms.institution=ms1.institution
                             and ms.acad_career=ms1.acad_career
                             and ms.acad_prog=ms1.acad_prog
+                            and ms1.EDW_ACTV_IND='Y'
                             )
+            and ms.EDW_ACTV_IND='Y'
 ) milestone
 on a.emplid=milestone.emplid
 and a.institution=milestone.institution
@@ -436,3 +458,5 @@ and a.acad_prog = milestone.acad_plan_acad_prog
 and milestone.milestone='GCOMPEXAM'
 and milestone.ACAD_CAREER = 'GRAD' 
 and milestone.MILESTONE_COMPLETE = 'Y'
+where ct.EDW_ACTV_IND='Y'
+and res.EDW_ACTV_IND='Y'
