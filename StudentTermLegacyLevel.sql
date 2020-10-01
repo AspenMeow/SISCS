@@ -1,6 +1,6 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 09/28/2020
+--Last updated on 10/01/2020
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
 --Note : Continuing Discussion on whether to drill down to legacy student level (CPP Group) for many of those flag variables.
@@ -82,36 +82,65 @@ where ct.EDW_ACTV_IND='Y' and
 tm.EDW_ACTV_IND='Y' and
 ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186')
 --where ct.strm=2188
-),
+)
 
 
-dat2 as (
-select a.*,d.MSU_Atnd_Preced_Flag,d.Enrld_MSU_Prior,
-(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then 'N' when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as First_STRM_RPT_LVL,
-(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then 'N' when First_Term_Career=a.strm then 'Y' else 'N' end ) as First_STRM_Career, 
-(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
-when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
-when First_Term_Rpt_Level=a.strm then 'NEW'
+
+select ct.EMPLID,ct.STRM, ct.INSTITUTION, a.TERM_DESCRSHORT, ct.ACAD_CAREER, a.ENROLLMENT_STATUS,a.ACAD_PROG,a.ACAD_PLAN,  a.PRIMARY_CAR_FLAG,  a.PRIMARY_PLAN_FLAG,
+ct.stdnt_car_nbr,ct.elig_to_enroll,
+ct.acad_level_bot,
+ct.acad_level_eot,
+ct.acad_level_proj,
+ct.cur_gpa,
+ct.unt_term_tot,
+ct.unt_taken_prgrss,
+ct.unt_passd_gpa,
+ct.unt_taken_gpa,
+ct.grade_points,
+ct.cum_gpa,
+ct.tot_cumulative,
+ct.tot_taken_prgrss,
+ct.tot_passd_gpa,
+(ct.TOT_INPROG_GPA + ct.TOT_INPROG_NOGPA) as TOT_PROJ_UNITS,
+ct.TOT_TRNSFR as TOT_TRNSFR_CRS,
+ct.tot_taken_gpa,
+ct.tot_grade_points,
+ct.cum_resident_terms,
+ct.academic_load,
+ct.academic_load_dt,
+ct.withdraw_code,
+ct.withdraw_reason,
+ct.withdraw_date,
+(case when a.STRM>= res.effective_term then res.residency end) as residency,
+(case when a.STRM>= res.effective_term then res.residency_dt end) as residency_date,
+(case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
+--milestone COMP EXAM GRAD Only
+(case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
+milestone.date_completed as COMP_EXAM_CMPL_DATE,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' ' 
+when First_Term_Career=a.strm then 'Y' else 'N' end ) as First_PRIM_Career, 
+d.MSU_Atnd_Preced_Flag,d.Enrld_MSU_Prior,
+
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
+when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
+when First_Term_Career=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
-else 'RGAP' end )   as Term_Classif_Code_Lvl,
+else 'RGAP' end ) as Term_Classif_Code,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or cohort_entry is null then ' ' else cohort_entry end) as COHORT_PRIM_ENTRY,
+(case when mintermplan=a.strm then 'Y' else 'N' end ) as First_Term_In_Plan,
+(case when honr.stdnt_group is null then 'N' else 'Y' end ) as Honors_College_Member,
+(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
+when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
+when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
+when First_Term_Career=a.strm then 'NEW'
+when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
+else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT') or 
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Career=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
-else 'RGAP' end ) as Term_Classif_Code_Career,
-cohort_entry,entrycohortlvl.cohort_entry_lvl,
-(case when mintermplan=a.strm then 'Y' else 'N' end ) as First_Term_In_Plan,
-(case when honr.stdnt_group is null then 'N' else 'Y' end ) as Honors_College_Member,
-(case when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
-when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
-when First_Term_Rpt_Level=a.strm then 'NEW'
-when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
-else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT') or (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
-when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
-when First_Term_Rpt_Level=a.strm then 'NEW'
-when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end ) in ('NEW','CONT') )then 'Y'
-else 'N' end ) as IPEDS_Fall_Cohort_New,
+else 'N' end ) as Fall_Entering_Cohort,
 
 (case when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=1 then '06'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=2 then '10'
@@ -122,8 +151,30 @@ when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=6 then '17'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=7 then '18'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=8 then '15'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=9 then '21'
-end)  highest_education_lvl
+else ' '
+end)  Prior_High_Degree ,
 
+a.STUDENT_LEVEL as DEGR_CAR,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' ' 
+when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as First_Prim_CAR_DEGR,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' '
+when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
+when First_Term_Rpt_Level=a.strm then 'NEW'
+when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
+else 'RGAP' end )   as Term_Classif_Code_CAR_DEGR,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or entrycohortlvl.cohort_entry_lvl is null then ' ' else entrycohortlvl.cohort_entry_lvl end) as COHORT_PRIM_ENTRY_CAR_DEGR,
+(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
+when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
+when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
+when First_Term_Rpt_Level=a.strm then 'NEW'
+when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
+else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT') or 
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
+when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
+when First_Term_Rpt_Level=a.strm then 'NEW'
+when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
+else 'RGAP' end ) in ('NEW','CONT') )then 'Y'
+else 'N' end ) as IPEDS_Fall_Cohort_CAR_DEGR
 from termlvlenrl a
 --first term at lvl
 left join 
@@ -353,68 +404,7 @@ on a.emplid=honr.emplid
 and a.acad_career= honr.acad_career
 and a.institution=honr.institution
 and a.strm=honr.strm
-
-where 
-( a.primary_plan_flag='Y' or a.PRIMARY_CAR_FLAG is null) 
---and a.emplid in ('159690642')
-order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
-)
-
-select a.EMPLID,a.STRM,a.INSTITUTION,a.TERM_DESCRSHORT,
-a.ENROLLMENT_STATUS,a.ACAD_CAREER,a.PRIMARY_CAR_FLAG,a.ACAD_PLAN,
-a.ACAD_PROG,a.PRIMARY_PLAN_FLAG,a.STUDENT_LEVEL as CPP_Grp,a.MSU_ATND_PRECED_FLAG as MSU_Enrld_Preced,
-a.ENRLD_MSU_PRIOR,
-a.FIRST_STRM_RPT_LVL as First_Prim_CPP_Grp,
-a.FIRST_STRM_CAREER as First_Prim_Career,
-b.TERM_CLASSIF_CODE_LVL,
-b.TERM_CLASSIF_CODE_CAREER,
-(case when a.PRIMARY_CAR_FLAG='Y' then     a.COHORT_ENTRY end ) as Cohort_Prim_Entry, 
-(case when a.PRIMARY_CAR_FLAG='Y' then a.cohort_entry_lvl end ) as Cohort_Prim_Entry_CPP_Grp,
-a.FIRST_TERM_IN_PLAN,
-a.HONORS_COLLEGE_MEMBER,
-a.IPEDS_FALL_COHORT_NEW,
-a.HIGHEST_EDUCATION_LVL as Prior_High_Degree,
-(case when a.STRM>= res.effective_term then res.residency end) as residency,
-(case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
---additional variables from student car term directly
-ct.stdnt_car_nbr,
-ct.elig_to_enroll,
-ct.acad_level_bot,
-ct.acad_level_eot,
-ct.acad_level_proj,
-ct.cur_gpa,
-ct.unt_term_tot,
-ct.unt_taken_prgrss,
-ct.unt_passd_gpa,
-ct.unt_taken_gpa,
-ct.grade_points,
-ct.cum_gpa,
-ct.tot_cumulative,
-ct.tot_taken_prgrss,
-ct.tot_passd_gpa,
-(ct.TOT_INPROG_GPA + ct.TOT_INPROG_NOGPA) as TOT_PROJ_UNITS,
-ct.TOT_TRNSFR as TOT_TRNSFR_CRS,
-ct.tot_taken_gpa,
-ct.tot_grade_points,
-ct.cum_resident_terms,
-ct.academic_load,
-ct.academic_load_dt,
-ct.withdraw_code,
-ct.withdraw_reason,
-ct.withdraw_date,
---milestone COMP EXAM GRAD Only
-(case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
-milestone.date_completed as COMP_EXAM_CMPL_DATE
-from dat2 a
-left join (select emplid, strm, institution, Term_Classif_Code_Career, Term_Classif_Code_Lvl
-            from dat2 
-            where PRIMARY_CAR_FLAG='Y') b
-on a.emplid=b.emplid
-and a.strm=b.strm
-and a.institution=b.institution
---adding additional columns from stdnt car term
-inner join 
-SISCS.P_STDNT_CAR_TERM_V ct
+inner join SISCS.P_STDNT_CAR_TERM_V ct
 on a.emplid=ct.emplid
 and a.strm=ct.strm
 and a.institution=ct.institution
@@ -458,5 +448,12 @@ and a.acad_prog = milestone.acad_plan_acad_prog
 and milestone.milestone='GCOMPEXAM'
 and milestone.ACAD_CAREER = 'GRAD' 
 and milestone.MILESTONE_COMPLETE = 'Y'
-where ct.EDW_ACTV_IND='Y'
+
+
+
+where 
+( a.primary_plan_flag='Y' or a.PRIMARY_CAR_FLAG is null) 
+and ct.EDW_ACTV_IND='Y'
 and res.EDW_ACTV_IND='Y'
+order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
+
