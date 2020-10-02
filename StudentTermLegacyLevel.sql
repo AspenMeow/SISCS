@@ -1,10 +1,8 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 10/01/2020
+--Last updated on 10/02/2020
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
---Note : Continuing Discussion on whether to drill down to legacy student level (CPP Group) for many of those flag variables.
---For now, I created both version for first_term_at_career/lvl,cohort_entry, Term_Classification
 --becasue the table with admit typpe has not been available yet, variables depending on that are not included yet are : First_Prim_Ugrd_Flag, First_Prim_at_GRAD_Masters, First_Prim_at_GRAD_Doctoral,Entry_Status_Code
 with termlvlenrl as (
 select distinct
@@ -29,25 +27,7 @@ prim.PRIMARY_CAR_FLAG,
 prim.acad_plan,
 prim.ACAD_PLAN_ACAD_PROG as acad_prog,
 prim.primary_plan_flag, 
-(case when ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG	='NONU'  and substr(prim.acad_plan,-4) in ('ELCT','NOEL') then 'EL' 
-when ct.ACAD_CAREER='GCRT' and prim.ACAD_PLAN_ACAD_PROG='GCERT' then 'GC'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NONG' and substr(prim.acad_plan,-4) in ('NOHG') then 'HG'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NONU' and substr(prim.acad_plan,-4) in ('NOHU') then 'HU'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NLAW'  and substr(prim.acad_plan,-4) in ('NOLD') then 'LD'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NONG' and substr(prim.acad_plan,-4) in ('NOLG') then 'LG'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NONU' and substr(prim.acad_plan,-4) in ('NOLU') then 'LU'
-when  ct.ACAD_CAREER='NON' and prim.ACAD_PLAN_ACAD_PROG='NONG' and substr(prim.acad_plan,-4) in ('NOPD') then 'PD'
-when ct.ACAD_CAREER='GCRT' and prim.ACAD_PLAN_ACAD_PROG='TEACH' then 'TE'
-when ct.acad_career='AGTC' then 'AT'
-when ct.acad_career='NONL' then 'DL'
-when ct.acad_career='GRAD' then 'GR'
-when ct.acad_career='HMED' then 'HM'
-when ct.acad_career='LAWM' then 'LM'
-when ct.acad_career='LAW' then 'LW'
-when ct.acad_career='OMED' then 'OM'
-when ct.acad_career='UGRD' then 'UN'
-when ct.acad_career='VMED' then 'VM'
-else '' end ) as student_level
+(case when ct.ACAD_CAREER in ('NON','GCRT' ) then ct.ACAD_CAREER||'_'||prim.degree else ct.ACAD_CAREER end) as student_level
 from SISCS.P_STDNT_CAR_TERM_V ct
 inner join SISCS.S_TERM_TBL_V tm
 on ct.strm=tm.strm and ct.acad_career=tm.acad_career
@@ -80,7 +60,7 @@ and ct.strm=prim.strm
 --testing pids, need to remove 
 where ct.EDW_ACTV_IND='Y' and 
 tm.EDW_ACTV_IND='Y' and
-ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186')
+ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
 --where ct.strm=2188
 )
 
@@ -120,7 +100,20 @@ milestone.date_completed as COMP_EXAM_CMPL_DATE,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' ' 
 when First_Term_Career=a.strm then 'Y' else 'N' end ) as First_PRIM_Career, 
 d.MSU_Atnd_Preced_Flag,d.Enrld_MSU_Prior,
-
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
+when First_Term_Career=a.strm and  adm.basis_admit_code='FY' and a.ACAD_CAREER='UGRD' then 'Y'
+else 'N' end) as First_Prim_Ugrd_Flag ,
+adm.basis_admit_code,
+(case when a.ACAD_CAREER<>'UGRD' then 'OTHR'
+when adm.basis_admit_code='FY' then 'FRST'
+when adm.basis_admit_code='TR' then 'TRAN' 
+else ' ' end ) as Entry_Status_Code,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
+when First_Term_Career=a.strm and  adm.basis_admit_code='GR' and a.ACAD_CAREER='GRAD' and ct.ACAD_LEVEL_BOT = 'MAS' then 'Y'
+else 'N' end) as First_Term_at_Masters ,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
+when First_Term_Career=a.strm and  adm.basis_admit_code='GR' and a.ACAD_CAREER='GRAD' and ct.ACAD_LEVEL_BOT = 'PHD' then 'Y'
+else 'N' end) as First_Prim_GRAD_Doctoral  ,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
 when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Career=a.strm then 'NEW'
@@ -153,8 +146,7 @@ when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=8 then '15'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=9 then '21'
 else ' '
 end)  Prior_High_Degree ,
-
-a.STUDENT_LEVEL as DEGR_CAR,
+a.STUDENT_LEVEL as DEGREE_CAREER,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' ' 
 when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as First_Prim_CAR_DEGR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' '
@@ -448,8 +440,10 @@ and a.acad_prog = milestone.acad_plan_acad_prog
 and milestone.milestone='GCOMPEXAM'
 and milestone.ACAD_CAREER = 'GRAD' 
 and milestone.MILESTONE_COMPLETE = 'Y'
-
-
+left join siscs.p_adm_basis_admit_v adm
+on a.emplid= adm.emplid
+and a.institution= adm.institution
+and a.acad_career= adm.acad_career
 
 where 
 ( a.primary_plan_flag='Y' or a.PRIMARY_CAR_FLAG is null) 
