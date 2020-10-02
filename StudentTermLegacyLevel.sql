@@ -93,6 +93,8 @@ ct.withdraw_reason,
 ct.withdraw_date,
 (case when a.STRM>= res.effective_term then res.residency end) as residency,
 (case when a.STRM>= res.effective_term then res.residency_dt end) as residency_date,
+(case when a.STRM>= res.effective_term then res.admission_res end) as admission_res,
+(case when a.STRM>= res.effective_term then res.tuition_res end) as tuition_res,
 (case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
 --milestone COMP EXAM GRAD Only
 (case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
@@ -103,7 +105,6 @@ d.MSU_Atnd_Preced_Flag,d.Enrld_MSU_Prior,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
 when First_Term_Career=a.strm and  adm.basis_admit_code='FY' and a.ACAD_CAREER='UGRD' then 'Y'
 else 'N' end) as First_Prim_Ugrd_Flag ,
-adm.basis_admit_code,
 (case when a.ACAD_CAREER<>'UGRD' then 'OTHR'
 when adm.basis_admit_code='FY' then 'FRST'
 when adm.basis_admit_code='TR' then 'TRAN' 
@@ -120,7 +121,8 @@ when First_Term_Career=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end ) as Term_Classif_Code,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or cohort_entry is null then ' ' else cohort_entry end) as COHORT_PRIM_ENTRY,
-(case when mintermplan=a.strm then 'Y' else 'N' end ) as First_Term_In_Plan,
+--(case when mintermplan=a.strm then 'Y' else 'N' end ) as First_Term_In_Plan,
+mintermplan  as First_Term_In_Plan,
 (case when honr.stdnt_group is null then 'N' else 'Y' end ) as Honors_College_Member,
 (case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
 when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
