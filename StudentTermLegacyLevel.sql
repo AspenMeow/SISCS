@@ -30,7 +30,7 @@ prim.primary_plan_flag,
 (case when ct.ACAD_CAREER in ('NON','GCRT' ) then ct.ACAD_CAREER||'_'||prim.degree else ct.ACAD_CAREER end) as student_level
 from SISCS.P_STDNT_CAR_TERM_V ct
 inner join SISCS.S_TERM_TBL_V tm
-on ct.strm=tm.strm and ct.acad_career=tm.acad_career
+on ct.strm=tm.strm and ct.acad_career=tm.acad_career 
 left join 
     (select emplid,
             acad_career,
@@ -59,9 +59,9 @@ and ct.institution= prim.institution
 and ct.strm=prim.strm
 --testing pids, need to remove 
 where ct.EDW_ACTV_IND='Y' and 
-tm.EDW_ACTV_IND='Y' and
-ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
---where ct.strm=2188
+tm.EDW_ACTV_IND='Y' 
+--and ct.emplid in ('109118457')
+and ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
 )
 
 
@@ -91,10 +91,10 @@ ct.academic_load_dt,
 ct.withdraw_code,
 ct.withdraw_reason,
 ct.withdraw_date,
-(case when a.STRM>= res.effective_term then res.residency end) as residency,
-(case when a.STRM>= res.effective_term then res.residency_dt end) as residency_date,
-(case when a.STRM>= res.effective_term then res.admission_res end) as admission_res,
-(case when a.STRM>= res.effective_term then res.tuition_res end) as tuition_res,
+res.residency  as residency,
+res.residency_dt  as residency_date,
+res.admission_res  as admission_res,
+res.tuition_res  as tuition_res,
 (case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
 --milestone COMP EXAM GRAD Only
 (case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
@@ -188,7 +188,6 @@ on a.emplid=b.emplid
 and a.institution=b.institution
 and  b.cnt=1
 and a.student_level=b.student_level
---and a.strm=b.strm
 left join 
     (--first term at career
     select  emplid, institution, ACAD_CAREER,strm,
@@ -247,7 +246,7 @@ left join (select a.*, b.acad_year as cohort_entry
                     min(strm) as minstrm
                     from termlvlenrl
                    where  enrollment_status in ('E','C','W')
-                and PRIMARY_CAR_FLAG ='Y'
+                and PRIMARY_CAR_FLAG ='Y' and primary_plan_flag='Y'
             group by emplid, institution,  acad_career,
                             (case when acad_career='GRAD' then acad_level_bot else acad_career end )
          ) a
@@ -269,7 +268,7 @@ left join (select a.*, b.acad_year as cohort_entry_lvl
                     min(strm) as minstrm
                     from termlvlenrl
                    where  enrollment_status in ('E','C','W')
-                and PRIMARY_CAR_FLAG ='Y'
+                and PRIMARY_CAR_FLAG ='Y' and primary_plan_flag='Y'
             group by emplid, institution, acad_career, student_level,
                             (case when student_level='GRAD' then acad_level_bot else student_level end )
          ) a
@@ -414,10 +413,10 @@ and res.effective_term= (
         and  ct.acad_career= r.acad_career
         and ct.institution= r.institution
         and r.EDW_ACTV_IND='Y'
-      -- and ct.strm >= r.effective_term
+      and ct.strm >= r.effective_term
 )
 --add comp exam milestones for grad
-left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,ms.milestone, ms.date_completed, ms.MILESTONE_COMPLETE
+left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,ms.milestone, ms.date_completed, ms.MILESTONE_COMPLETE, a.strm
              from SISCS.R_PRIMACY_RV a
              left join siscs.p_stdnt_car_mlstn_v ms
             on a.emplid=ms.emplid
@@ -437,6 +436,7 @@ left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,m
 ) milestone
 on a.emplid=milestone.emplid
 and a.institution=milestone.institution
+and a.strm=milestone.strm
 and a.acad_career=milestone.acad_career
 and a.acad_prog = milestone.acad_plan_acad_prog
 and milestone.milestone='GCOMPEXAM'
