@@ -66,7 +66,7 @@ and ct.emplid in ('156333912','126863026','156297326','158749061','159690642','1
 
 
 
-select ct.EMPLID,ct.STRM, ct.INSTITUTION, a.TERM_DESCRSHORT, ct.ACAD_CAREER, a.ENROLLMENT_STATUS,a.ACAD_PROG,a.ACAD_PLAN,  a.PRIMARY_CAR_FLAG,  a.PRIMARY_PLAN_FLAG,
+select ct.EMPLID,ct.STRM, ct.INSTITUTION, a.TERM_DESCRSHORT, ct.ACAD_CAREER, a.ENROLLMENT_STATUS as Enroll_Status,a.ACAD_PROG,a.ACAD_PLAN,  a.PRIMARY_CAR_FLAG,  a.PRIMARY_PLAN_FLAG,
 ct.stdnt_car_nbr,ct.elig_to_enroll,
 ct.acad_level_bot,
 ct.acad_level_eot,
@@ -97,7 +97,8 @@ res.admission_res  as admission_res,
 res.tuition_res  as tuition_res,
 (case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
 --milestone COMP EXAM GRAD Only
-(case when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
+(case when ct.acad_career <> 'GRAD' or a.PRIMARY_CAR_FLAG ='N' then ' '
+when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
 milestone.date_completed as COMP_EXAM_CMPL_DATE,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' ' 
 when First_Term_Career=a.strm then 'Y' else 'N' end ) as First_PRIM_Career, 
@@ -148,7 +149,7 @@ when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=8 then '15'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=9 then '21'
 else ' '
 end)  Prior_High_Degree ,
-a.STUDENT_LEVEL as DEGREE_CAREER,
+a.STUDENT_LEVEL as CAREER_Degree,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' ' 
 when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as First_Prim_CAR_DEGR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' '
@@ -380,10 +381,10 @@ left join (
                             where g.emplid=a.emplid 
                             and g.stdnt_group=a.stdnt_group
                             and g.institution=a.institution
-                            and a.institution=t.institution
-                            and t.strm=scar.strm
-                            and a.emplid=scar.emplid
-                            and scar.acad_career= t.acad_career
+                            --and a.institution=t.institution
+                            --and t.strm=scar.strm
+                            --and a.emplid=scar.emplid
+                            --and scar.acad_career= t.acad_career
                             and a.effdt <= t.term_end_dt
                             and a.EDW_ACTV_IND='Y'
                             --and t.term_begin_dt <= sysdate
@@ -448,7 +449,7 @@ and a.institution= adm.institution
 and a.acad_career= adm.acad_career
 
 where 
-( a.primary_plan_flag='Y' or a.PRIMARY_CAR_FLAG is null) 
+ a.primary_plan_flag='Y' 
 and ct.EDW_ACTV_IND='Y'
 and res.EDW_ACTV_IND='Y'
 order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
