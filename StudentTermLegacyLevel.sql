@@ -1,9 +1,9 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 10/02/2020
+--Last updated on 10/06/2020
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
---becasue the table with admit typpe has not been available yet, variables depending on that are not included yet are : First_Prim_Ugrd_Flag, First_Prim_at_GRAD_Masters, First_Prim_at_GRAD_Doctoral,Entry_Status_Code
+
 with termlvlenrl as (
 select distinct
 ct.emplid,
