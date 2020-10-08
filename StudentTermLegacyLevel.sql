@@ -30,7 +30,7 @@ prim.primary_plan_flag,
 (case when ct.ACAD_CAREER in ('NON','GCRT' ) then ct.ACAD_CAREER||'_'||prim.degree else ct.ACAD_CAREER end) as student_level
 from SISCS.P_STDNT_CAR_TERM_V ct
 inner join SISCS.S_TERM_TBL_V tm
-on ct.strm=tm.strm and ct.acad_career=tm.acad_career 
+on ct.strm=tm.strm and ct.acad_career=tm.acad_career and ct.institution=tm.institution
 left join 
     (select emplid,
             acad_career,
