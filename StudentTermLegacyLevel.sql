@@ -11,6 +11,7 @@ ct.strm,
 ct.institution,
 ct.acad_level_bot,
 tm.descrshort as term_descrshort,
+/* Class drops made BEFORE the ACAD_CALSES_TBL   LST_DROP_DT_DEL date will be removed from STDNT_ENRL.  Drops after LST_DROP_DT_DEL date and on/before LST_DROP_DT_RET are retained in STDNT_ENRL.  Drops after LST_DROP_DT_RET are also then printed on the transcript. Drops before LST_DROP_DT_DEL date can be found only in the ENRL_REQ_DETAIL table. */
 (case 
     when ct.ELIG_TO_ENROLL='N' then 'N'
     --adjust the priority 
@@ -95,6 +96,7 @@ res.residency  as residency,
 res.residency_dt  as residency_date,
 res.admission_res  as admission_res,
 res.tuition_res  as tuition_res,
+res.FIN_AID_FED_RES,
 (case when ct.ELIG_TO_ENROLL='Y' and ct.unt_passd_gpa>=12 and cur_gpa>=3.5 then 'Y' else 'N' end) as deans_list_flag,
 --milestone COMP EXAM GRAD Only
 (case when ct.acad_career <> 'GRAD' or a.PRIMARY_CAR_FLAG ='N' then ' '
@@ -102,17 +104,17 @@ when milestone.emplid is null then 'N' else 'Y' end ) as COMP_EXAM_COMPLETED,
 milestone.date_completed as COMP_EXAM_CMPL_DATE,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' ' 
 when First_Term_Career=a.strm then 'Y' else 'N' end ) as First_PRIM_Career, 
-d.MSU_Atnd_Preced_Flag,d.Enrld_MSU_Prior,
+d.MSU_Atnd_Preced_Flag as MSU_ENRLD_PRECED,d.Enrld_MSU_Prior as MSU_ENRLD_PRIOR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
 when First_Term_Career=a.strm and  adm.basis_admit_code='FY' and a.ACAD_CAREER='UGRD' then 'Y'
-else 'N' end) as First_Prim_Ugrd_Flag ,
+else 'N' end) as FIRST_PRIM_UGRD ,
 (case when a.ACAD_CAREER<>'UGRD' then 'OTHR'
 when adm.basis_admit_code='FY' then 'FRST'
 when adm.basis_admit_code='TR' then 'TRAN' 
 else ' ' end ) as Entry_Status_Code,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
 when First_Term_Career=a.strm and  adm.basis_admit_code='GR' and a.ACAD_CAREER='GRAD' and ct.ACAD_LEVEL_BOT = 'MAS' then 'Y'
-else 'N' end) as First_Term_at_Masters ,
+else 'N' end) as FIRST_PRIM_GRAD_MASTERS ,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Career is null then ' '
 when First_Term_Career=a.strm and  adm.basis_admit_code='GR' and a.ACAD_CAREER='GRAD' and ct.ACAD_LEVEL_BOT = 'PHD' then 'Y'
 else 'N' end) as First_Prim_GRAD_Doctoral  ,
@@ -149,15 +151,15 @@ when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=8 then '15'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=9 then '21'
 else ' '
 end)  Prior_High_Degree ,
-a.STUDENT_LEVEL as CAREER_Degree,
+a.STUDENT_LEVEL as RPT_DEGREE_CAREER,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' ' 
-when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as First_Prim_CAR_DEGR,
+when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as RPT_FIRST_PRIM_DEGR_CAR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' '
 when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end )   as Term_Classif_Code_CAR_DEGR,
-(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or entrycohortlvl.cohort_entry_lvl is null then ' ' else entrycohortlvl.cohort_entry_lvl end) as COHORT_PRIM_ENTRY_CAR_DEGR,
+(case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or entrycohortlvl.cohort_entry_lvl is null then ' ' else entrycohortlvl.cohort_entry_lvl end) as RPT_COHORT_PRIM_ENTRY,
 (case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
 when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
@@ -169,7 +171,7 @@ when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end ) in ('NEW','CONT') )then 'Y'
-else 'N' end ) as IPEDS_Fall_Cohort_CAR_DEGR
+else 'N' end ) as RPT_IPEDS_FALL_COHORT
 from termlvlenrl a
 --first term at lvl
 left join 
