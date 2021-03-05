@@ -61,8 +61,9 @@ and ct.strm=prim.strm
 --testing pids, need to remove 
 where ct.EDW_ACTV_IND='Y' and 
 tm.EDW_ACTV_IND='Y' 
+and ct.emplid='155728658'
 --and ct.emplid in ('109118457')
-and ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+--and ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
 )
 
 
@@ -150,7 +151,7 @@ when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=7 then '18'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=8 then '15'
 when greatest(nvl(exawd.postdeg,0),nvl(intawd.postdeg,0))=9 then '21'
 else ' '
-end)  Prior_High_Degree ,
+end)  Prior_High_Degree ,acdstd.ACAD_STNDNG_ACTN ,acdstd.ACAD_STNDNG_STAT,
 a.STUDENT_LEVEL as RPT_DEGREE_CAREER,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or First_Term_Rpt_Level is null then ' ' 
 when  First_Term_Rpt_Level=a.strm then 'Y' else 'N' end ) as RPT_FIRST_PRIM_DEGR_CAR,
@@ -449,6 +450,27 @@ left join siscs.p_adm_basis_admit_v adm
 on a.emplid= adm.emplid
 and a.institution= adm.institution
 and a.acad_career= adm.acad_career
+-- add academic standing end term
+left join (
+select acadstdng1.emplid, acadstdng1.acad_career, acadstdng1.institution, acadstdng1.strm, effdt,effseq,ACAD_STNDNG_ACTN ,ACAD_STNDNG_STAT ,
+COUNT(*) OVER(
+          PARTITION BY acadstdng1.emplid, acadstdng1.acad_career, acadstdng1.institution, acadstdng1.strm
+          ORDER BY
+           acadstdng1.emplid, acadstdng1.acad_career, acadstdng1.institution, acadstdng1.strm, effdt,effseq
+        ) AS seqorder
+ from  siscs.P_ACAD_STDNG_ACTN_V acadstdng1 
+ inner join  siscs.s_term_tbl_v t 
+ on  acadstdng1.institution=t.institution
+and acadstdng1.acad_career=t.acad_career
+and t.strm=acadstdng1.strm
+where  acadstdng1.effdt <= t.term_end_dt
+ and acadstdng1.EDW_ACTV_IND='Y') acdstd
+ 
+on acdstd.seqorder=1
+and a.emplid= acdstd.emplid
+and a.institution= acdstd.institution
+and a.acad_career= acdstd.acad_career
+and a.strm= acdstd.strm
 
 where 
  a.primary_plan_flag='Y' 
