@@ -4,7 +4,7 @@
 
 
 
-<span style="color:red">some **Revision need to make change on enrollment status to make it independent of acad career.** text</span>
+<span style="color:red"> **Revision need to make change on enrollment status to make it independent of acad career.** </span>
 
 ## Revision History
 1. 9/3/20 First Draft with both sets of flags variables. Student Level was coded based on the plan suffix (needs revision)
