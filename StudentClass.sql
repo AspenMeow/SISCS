@@ -1,4 +1,5 @@
-   with dat as (
+--215352 2198
+
     select    
               --Key Fields
               p_class_tbl_se_vw.emplid
@@ -59,8 +60,15 @@
                 else
                   'N'
               end as honors_option
-             ,p_class_tbl_se_vw.stdnt_positin
+             ,p_class_tbl_se_vw.stdnt_positin,
+             c_class_tbl.instruction_mode
     from      siscs.p_class_tbl_se_vw_v  p_class_tbl_se_vw
+    inner join siscs.c_class_tbl_av c_class_tbl
+    on p_class_tbl_se_vw.strm= c_class_tbl.strm
+    and p_class_tbl_se_vw.crse_id= c_class_tbl.crse_id
+    and p_class_tbl_se_vw.crse_offer_nbr= c_class_tbl.crse_offer_nbr
+    and p_class_tbl_se_vw.session_code= c_class_tbl.session_code
+    and p_class_tbl_se_vw.class_section= c_class_tbl.class_section
     left join (select * from siscs.c_crse_attributes_av where edw_actv_ind='Y' and edw_curr_ind='Y') c_crse_attributes on c_crse_attributes.crse_id = p_class_tbl_se_vw.crse_id
                                        and c_crse_attributes.crse_attr = 'HON'
 
@@ -147,7 +155,5 @@
                                     and      i_ed.effdt <= sysdate
                                    )
                 or session_code.effdt is null) 
-                )
-                
-                select count(*)
-                from dat
+    and c_class_tbl.edw_actv_ind='Y' and c_class_tbl.edw_curr_ind='Y'
+  
