@@ -1,7 +1,7 @@
 # SISCS View
 
 ## StudentTermLegacyLevel.sql is for student term reporting view
-
+## StudentClass.sql is for student term reporting view
 
 
 <span style="color:red"> **Revision need to make change on enrollment status to make it independent of acad career.** </span>
