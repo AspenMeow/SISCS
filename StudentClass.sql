@@ -61,7 +61,10 @@
                   'N'
               end as honors_option
              ,p_class_tbl_se_vw.stdnt_positin,
-             c_class_tbl.instruction_mode
+             c_class_tbl.instruction_mode,
+             (case when regexp_replace(p_class_tbl_se_vw.catalog_nbr, '[^0-9]', '')>=500 
+and  regexp_replace(p_class_tbl_se_vw.catalog_nbr, '[^0-9]', '')<=999 
+and (p_class_tbl_se_vw.subject <> 'LAW' or p_class_tbl_se_vw.UNT_TAKEN >= 2) then 'Y' else 'N' end) as HONORS_EXP
     from      siscs.p_class_tbl_se_vw_v  p_class_tbl_se_vw
     inner join siscs.c_class_tbl_av c_class_tbl
     on p_class_tbl_se_vw.strm= c_class_tbl.strm
