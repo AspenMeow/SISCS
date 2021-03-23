@@ -361,11 +361,16 @@ and p_pers_data_effdt.emplid ='161640972'
 --my own code for RE
 
  with dat as (
- select re.emplid,re.HISP_LATINO ,re.country, re.citizenship_status,re.setid,re.ethnic_group, re.xlatlongname,  
- row_number()over(partition by emplid, ethnic_group order by hisp_latino desc, ethnic_grp_cd ) as cn
+ select re.emplid,re.HISP_LATINO ,re.country, re.citizenship_status,re.setid,re.ethnic_group, re.xlatlongname ,re.descr as citizenship_descrshort
+-- row_number()over(partition by emplid, ethnic_group order by hisp_latino desc, ethnic_grp_cd ) as cn
  from (
- select e.emplid,  c.ethnic_grp_cd,c.hisp_latino,e.country, e.citizenship_status,t.setid,t.ethnic_group, row_number() over( partition by e.emplid, c.ethnic_grp_cd order by t.effdt desc ) as n, t_xlattable_vw.xlatlongname	
+ select e.emplid,  c.ethnic_grp_cd,c.hisp_latino,e.country, e.citizenship_status,t.setid,t.ethnic_group, s.descr,
+ row_number() over( partition by e.emplid, c.ethnic_grp_cd order by t.effdt desc ) as n, t_xlattable_vw.xlatlongname	
 from   siscs.p_citizenship_av e
+left join siscs.s_citizen_sts_tbl_AV s
+on e.country=s.country
+and e.citizenship_status =s.citizenship_status
+and e.edw_curr_ind='Y' and e.edw_actv_ind='Y'
 left join siscs.p_ethnicity_dtl_av  c
 on  e.emplid = c.emplid
 and c.edw_curr_ind='Y' and c.edw_actv_ind='Y'
@@ -382,10 +387,14 @@ and emplid in ('161852124','104214101','107421384')
 )
 
 
-select distinct a.emplid ,a.citizenship_status,
+select distinct a.emplid ,a.citizenship_status, a. citizenship_descrshort,
 (case when a.citizenship_status = '4' and a.country='USA' then 'International'
+when a.Hisp_latino='Y' then 'Hispanic/Latino'
 when b.REcnt >1 then 'Two or More'
-else xlatlongname end ) as ipeds_race_ethnicity
+else xlatlongname end ) as ipeds_race_ethnicity,
+(case when  a.Hisp_latino='Y' then 'Hispanic/Latino'
+when b.REcnt >1 then 'Two or More'
+else xlatlongname end ) as race_ethnicity
 from dat a
 left join (
 select emplid, count(distinct ethnic_group) as REcnt
