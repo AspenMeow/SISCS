@@ -1,70 +1,121 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 10/06/2020
+--Last updated on 03/30/2021
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
-
-with termlvlenrl as (
-select distinct
-ct.emplid,
-ct.strm,
-ct.institution,
-ct.acad_level_bot,
-tm.descrshort as term_descrshort,
-/* Class drops made BEFORE the ACAD_CALSES_TBL   LST_DROP_DT_DEL date will be removed from STDNT_ENRL.  Drops after LST_DROP_DT_DEL date and on/before LST_DROP_DT_RET are retained in STDNT_ENRL.  Drops after LST_DROP_DT_RET are also then printed on the transcript. Drops before LST_DROP_DT_DEL date can be found only in the ENRL_REQ_DETAIL table. */
+--add enrollment_career
+with a as 
+ ((
+ SELECT 
+T.emplid,
+T.strm,
+T.institution,
+T.acad_level_bot,
+T.term_descrshort,
+T.enrollment_status,
+T.acad_career,
+T.PRIMARY_CAR_FLAG,
+T.acad_plan,
+T.acad_prog,
+T.primary_plan_flag,
+T.student_level,
+T.RNUM
+FROM
+(SELECT T.emplid,
+T.strm,
+T.institution,
+T.acad_level_bot,
+T.term_descrshort,
+T.enrollment_status,
+T.acad_career,
+T.PRIMARY_CAR_FLAG,
+T.acad_plan,
+T.acad_prog,
+T.primary_plan_flag,
+T.student_level,
+ROW_NUMBER() OVER( PARTITION BY T.emplid,
+T.strm,
+T.institution,
+T.acad_level_bot,
+T.term_descrshort,
+T.enrollment_status,
+T.acad_career,
+T.PRIMARY_CAR_FLAG,
+T.acad_plan,
+T.acad_prog,
+T.primary_plan_flag,
+T.student_level ORDER BY T.emplid ASC) AS RNUM
+FROM 
+(select 
+P_STDNT_CAR_TERM.emplid,
+P_STDNT_CAR_TERM.strm,
+P_STDNT_CAR_TERM.institution,
+P_STDNT_CAR_TERM.acad_level_bot,
+S_TERM_TBL.descrshort as term_descrshort,
 (case 
-    when ct.ELIG_TO_ENROLL='N' then 'N'
-    --adjust the priority 
-    when ct.withdraw_code='WDR' then 'W'
-    when en.enrl=1 then 'E'
-    when en.drp=0 then 'D'
-    when en.waitlist=0 then 'L'
-    when en.cancl=0 then 'C'
-    when en.disenrl=0 then 'S'
-   when en.emplid is null then 'A'
+    when P_STDNT_CAR_TERM.ELIG_TO_ENROLL='N' then 'N'
+    when P_STDNT_CAR_TERM.withdraw_code='WDR' then 'W'
+    when P_STDNT_ENRL.enrl=1 then 'E'
+    when P_STDNT_ENRL.drp=0 then 'D'
+    when P_STDNT_ENRL.waitlist=0 then 'L'
+   when P_STDNT_ENRL.emplid is null then 'A'
+   else ''
 end ) as enrollment_status,
-ct.acad_career,
-prim.PRIMARY_CAR_FLAG,
-prim.acad_plan,
-prim.ACAD_PLAN_ACAD_PROG as acad_prog,
-prim.primary_plan_flag, 
-(case when ct.ACAD_CAREER in ('NON','GCRT' ) then ct.ACAD_CAREER||'_'||prim.degree else ct.ACAD_CAREER end) as student_level
-from SISCS.P_STDNT_CAR_TERM_V ct
-inner join SISCS.S_TERM_TBL_V tm
-on ct.strm=tm.strm and ct.acad_career=tm.acad_career and ct.institution=tm.institution
+P_STDNT_CAR_TERM.acad_career,
+R_PRIMACY_R.PRIMARY_CAR_FLAG,
+R_PRIMACY_R.acad_plan,
+R_PRIMACY_R.ACAD_PLAN_ACAD_PROG as acad_prog,
+R_PRIMACY_R.primary_plan_flag,
+(case when P_STDNT_CAR_TERM.ACAD_CAREER in ('NON','GCRT' ) then P_STDNT_CAR_TERM.ACAD_CAREER||'_'||R_PRIMACY_R.degree else P_STDNT_CAR_TERM.ACAD_CAREER end) as student_level
+from (select * from SISCS.P_STDNT_CAR_TERM_av where edw_actv_ind='Y' and edw_curr_ind='Y') P_STDNT_CAR_TERM
+left join  siscs.R_PRIMACY_Rv  R_PRIMACY_R
+on P_STDNT_CAR_TERM.emplid= R_PRIMACY_R.emplid
+and P_STDNT_CAR_TERM.acad_career= R_PRIMACY_R.acad_career
+and P_STDNT_CAR_TERM.institution= R_PRIMACY_R.institution
+and P_STDNT_CAR_TERM.strm=R_PRIMACY_R.strm
+inner join (select * from SISCS.S_TERM_TBL_av where edw_actv_ind='Y' and edw_curr_ind='Y') S_TERM_TBL
+on P_STDNT_CAR_TERM.strm=S_TERM_TBL.strm and P_STDNT_CAR_TERM.acad_career=S_TERM_TBL.acad_career and P_STDNT_CAR_TERM.institution=S_TERM_TBL.institution
 left join 
-    (select emplid,
+    (select  emplid,
             acad_career,
             institution,
             strm,
             max(case when stdnt_enrl_status='E' then 1 else 0 end ) as enrl,
             max(case when stdnt_enrl_status='D' then 0 else 1 end) as drp,
-            max(case when stdnt_enrl_status='W' then 0 else 1 end) as waitlist,
-            max(case when enrl_status_reason='CANC' then 0 else 1 end) as cancl,
-            max(case when ENRL_ACTN_RSN_LAST='DSEN' then 0 else 1 end) as disenrl
-    from SISCS.P_STDNT_ENRL_V 
-    where EDW_ACTV_IND='Y'
+            max(case when stdnt_enrl_status='W' then 0 else 1 end) as waitlist
+    from SISCS.P_STDNT_ENRL_AV 
+    where EDW_ACTV_IND='Y' and edw_curr_ind='Y'
     group by emplid,
     acad_career,
     institution,
-    strm) en
-on ct.emplid=en.emplid
-and ct.acad_career=en.acad_career
-and ct.institution=en.institution
-and ct.strm=en.strm
---a dependency here
-left join siscs.R_PRIMACY_RV prim
-on ct.emplid= prim.emplid
-and ct.acad_career= prim.acad_career
-and ct.institution= prim.institution
-and ct.strm=prim.strm
---testing pids, need to remove 
-where ct.EDW_ACTV_IND='Y' and 
-tm.EDW_ACTV_IND='Y' 
-and ct.emplid='155728658'
---and ct.emplid in ('109118457')
---and ct.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+    strm) P_STDNT_ENRL
+on P_STDNT_CAR_TERM.emplid=P_STDNT_ENRL.emplid
+and P_STDNT_CAR_TERM.acad_career=P_STDNT_ENRL.acad_career
+and P_STDNT_CAR_TERM.institution=P_STDNT_ENRL.institution
+and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
+WHERE T.RNUM=1
+and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+ ) 
+ ),
+ termlvlenrl as (
+ 
+ select a.emplid, a.strm,a.institution,a.acad_level_bot,a.term_descrshort, 
+ (case when ordering=1 then 'E' when ordering =2 then 'W' 
+ when ordering =3 then 'L' when ordering =4 then 'D' when ordering =5 then 'A' when ordering =6 then 'N' else '' end) as enrollment_status,
+ acad_career, primary_car_flag, acad_plan, acad_prog, primary_plan_flag, student_level,enrollment_status as enrollment_career
+ from   a 
+ inner join (
+ select emplid, strm, institution, min(case when enrollment_status='E' then 1 
+when enrollment_status='W' then 2
+when enrollment_status='L' then 3
+when enrollment_status='D' then 4
+when enrollment_status='A' then 5
+when enrollment_status='N' then 6 else 7 end ) as ordering
+ from a
+ group by emplid, strm, institution ) b
+ on a.emplid =b.emplid and a.strm=b.strm and a.institution=b.institution
 )
+
 
 
 
@@ -128,7 +179,7 @@ else 'RGAP' end ) as Term_Classif_Code,
 --(case when mintermplan=a.strm then 'Y' else 'N' end ) as First_Term_In_Plan,
 mintermplan  as First_Term_In_Plan,
 (case when honr.stdnt_group is null then 'N' else 'Y' end ) as Honors_College_Member,
-(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
+(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
 when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Career=a.strm then 'NEW'
@@ -161,7 +212,7 @@ when First_Term_Rpt_Level=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end )   as Term_Classif_Code_CAR_DEGR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or entrycohortlvl.cohort_entry_lvl is null then ' ' else entrycohortlvl.cohort_entry_lvl end) as RPT_COHORT_PRIM_ENTRY,
-(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('C','E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
+(case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
 when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
@@ -172,7 +223,8 @@ when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end ) in ('NEW','CONT') )then 'Y'
-else 'N' end ) as RPT_IPEDS_FALL_COHORT
+else 'N' end ) as RPT_IPEDS_FALL_COHORT,
+a.enrollment_career
 from termlvlenrl a
 --first term at lvl
 left join 
@@ -186,7 +238,7 @@ left join
                             emplid,institution,student_level,strm
                         )   as First_Term_Rpt_Level
         from (select * from termlvlenrl 
-            where  PRIMARY_CAR_FLAG='Y' and primary_plan_flag='Y' and enrollment_status in ('E','C','W'))
+            where  PRIMARY_CAR_FLAG='Y' and primary_plan_flag='Y' and enrollment_status in ('E','W'))
         ) b
 on a.emplid=b.emplid 
 and a.institution=b.institution
@@ -204,7 +256,7 @@ left join
                             emplid,institution,ACAD_CAREER,strm
                         )   as First_Term_Career
         from (select distinct emplid, institution,ACAD_CAREER,strm  from termlvlenrl 
-            where  PRIMARY_CAR_FLAG='Y' and primary_plan_flag='Y' and enrollment_status in ('E','C','W')
+            where  PRIMARY_CAR_FLAG='Y' and primary_plan_flag='Y' and enrollment_status in ('E','W')
     )) c
 on a.emplid=c.emplid 
 and a.institution=c.institution
@@ -236,7 +288,7 @@ left join (
                             ) b
                 on a.strm >= minterm and a.strm <=maxterm
                 left join  termlvlenrl tm
-                on b.emplid=tm.emplid and a.strm=tm.strm and tm.enrollment_status in ('E','C','W')
+                on b.emplid=tm.emplid and a.strm=tm.strm and tm.enrollment_status in ('E','W')
                 where a.EDW_ACTV_IND='Y'
                 ))
         ) d
@@ -249,7 +301,7 @@ left join (select a.*, b.acad_year as cohort_entry
                     (case when acad_career='GRAD' then acad_level_bot else acad_career end ) as acad_gr_lvl,
                     min(strm) as minstrm
                     from termlvlenrl
-                   where  enrollment_status in ('E','C','W')
+                   where  enrollment_status in ('E','W')
                 and PRIMARY_CAR_FLAG ='Y' and primary_plan_flag='Y'
             group by emplid, institution,  acad_career,
                             (case when acad_career='GRAD' then acad_level_bot else acad_career end )
@@ -271,7 +323,7 @@ left join (select a.*, b.acad_year as cohort_entry_lvl
                     (case when student_level='GRAD' then acad_level_bot else student_level end ) as acad_gr_lvl,
                     min(strm) as minstrm
                     from termlvlenrl
-                   where  enrollment_status in ('E','C','W')
+                   where  enrollment_status in ('E','W')
                 and PRIMARY_CAR_FLAG ='Y' and primary_plan_flag='Y'
             group by emplid, institution, acad_career, student_level,
                             (case when student_level='GRAD' then acad_level_bot else student_level end )
@@ -290,7 +342,7 @@ and  (case when a.student_level='GRAD' then a.acad_level_bot else a.student_leve
 left join 
         (select distinct emplid,institution,acad_career,acad_plan, min(strm) as mintermplan
         from termlvlenrl
-           where  enrollment_status in ('E','C','W')
+           where  enrollment_status in ('E','W')
         group by emplid,institution,acad_career,acad_plan
 ) firstplan
 on a.emplid=firstplan.emplid
