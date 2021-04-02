@@ -34,7 +34,9 @@ residency_off.city as res_city,
 residency_off.country as res_country,		
 residency_off.county as res_county,		
 residency_off.state as res_state     ,		
-sa.campus_id		
+sa.campus_id	,
+(case when sfac.EMPLID is not null then 'Y' else 'N' end )as FERPA_SFAC,
+(case when sfrs.emplid is not null then 'Y' else 'N' end ) FERPA_SFRS	
 from		
 ( ( ( ( ( ( (select * from siscs.p_pers_data_effdt_av where edw_actv_ind='Y' and edw_curr_ind='Y')  p_pers_data_effdt		
 left outer join (select * from siscs.p_names_av  where edw_actv_ind='Y' and edw_curr_ind='Y')     p_namesc on p_pers_data_effdt.emplid = p_namesc.emplid		
@@ -100,8 +102,7 @@ when	t_xlattable_vw.XLATSHORTNAME	='Am. Indian' then 'Amer Ind'
 when	t_xlattable_vw.XLATSHORTNAME	='Hawaiian' then 'Hawaiian/PI'
 when	t_xlattable_vw.XLATSHORTNAME	='NS' then 'Not Spcfd'
 else	t_xlattable_vw.XLATSHORTNAME	
-end as ipeds_group_short		
-		
+end as ipeds_group_short
 from		
 (select * from siscs.p_citizenship_av where edw_actv_ind='Y' and edw_curr_ind='Y')    p_citizenship, (		
 select		
@@ -336,7 +337,10 @@ inner join  (select * from siscs.p_person_av   where edw_actv_ind='Y' and edw_cu
 on  p_pers_data_effdt.emplid = p_person.emplid		
 left join  siscs.p_person_sa_v sa		
 on p_pers_data_effdt.emplid=sa.emplid		
-		
+left join (select emplid from  siscs.P_FERPA_OVERRIDE_V where fieldname ='SFAC')  sfac
+on p_pers_data_effdt.emplid=sfac.emplid 
+left join (select emplid from  siscs.P_FERPA_OVERRIDE_V where fieldname ='SFRS') sfrs
+on p_pers_data_effdt.emplid=sfrs.emplid 
 where		
 (p_pers_data_effdt.effdt = (		
 select		
@@ -395,5 +399,4 @@ and c_ed.edw_actv_ind='Y' and c_ed.edw_curr_ind='Y'
 and c_ed.effdt <= sysdate		
 )		
 or p_namesc.effdt is null )		
-and p_pers_data_effdt.emplid in (
-'102497123')
+and p_pers_data_effdt.emplid in ('102497123')
