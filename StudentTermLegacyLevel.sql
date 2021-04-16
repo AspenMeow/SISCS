@@ -56,8 +56,8 @@ S_TERM_TBL.descrshort as term_descrshort,
     when P_STDNT_CAR_TERM.ELIG_TO_ENROLL='N' then 'N'
     when P_STDNT_CAR_TERM.withdraw_code='WDR' then 'W'
     when P_STDNT_ENRL.enrl=1 then 'E'
-    when P_STDNT_ENRL.drp=0 then 'D'
-    when P_STDNT_ENRL.waitlist=0 then 'L'
+    when P_STDNT_ENRL.waitlist=1 then 'L'
+    when P_STDNT_ENRL.drp=1 then 'D'
    when P_STDNT_ENRL.emplid is null then 'A'
    else ''
 end ) as enrollment_status,
@@ -81,8 +81,8 @@ left join
             institution,
             strm,
             max(case when stdnt_enrl_status='E' then 1 else 0 end ) as enrl,
-            max(case when stdnt_enrl_status='D' then 0 else 1 end) as drp,
-            max(case when stdnt_enrl_status='W' then 0 else 1 end) as waitlist
+            max(case when stdnt_enrl_status='D' then 1 else 0 end) as drp,
+            max(case when stdnt_enrl_status='W' then 1 else 0 end) as waitlist
     from SISCS.P_STDNT_ENRL_AV 
     where EDW_ACTV_IND='Y' and edw_curr_ind='Y'
     group by emplid,
