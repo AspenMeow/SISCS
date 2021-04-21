@@ -94,7 +94,8 @@ and P_STDNT_CAR_TERM.acad_career=P_STDNT_ENRL.acad_career
 and P_STDNT_CAR_TERM.institution=P_STDNT_ENRL.institution
 and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
 WHERE T.RNUM=1
-and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+--and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+and T.emplid ='109035815'
  ) 
  ),
  termlvlenrl as (
@@ -458,6 +459,10 @@ on a.emplid=ct.emplid
 and a.strm=ct.strm
 and a.institution=ct.institution
 and a.acad_career=ct.acad_career
+left join 
+(select ct.emplid, ct.acad_career, ct.strm, res.residency ,res.residency_dt ,res.admission_res ,
+res.tuition_res ,res.FIN_AID_FED_RES
+from SISCS.P_STDNT_CAR_TERM_V ct
 inner join siscs.p_residency_off_v res
 on ct.emplid=res.emplid
 and ct.acad_career=res.acad_career
@@ -470,7 +475,11 @@ and res.effective_term= (
         and ct.institution= r.institution
         and r.EDW_ACTV_IND='Y'
       and ct.strm >= r.effective_term
-)
+
+) where  res.EDW_ACTV_IND='Y' ) res
+on ct.emplid =res.emplid
+and ct.acad_career=res.acad_career
+and ct.strm= res.strm
 --add comp exam milestones for grad
 left join ( select a.emplid, a.institution,a.acad_career,a.acad_plan_acad_prog,ms.milestone, ms.date_completed, ms.MILESTONE_COMPLETE, a.strm
              from SISCS.R_PRIMACY_RV a
@@ -527,6 +536,6 @@ and a.strm= acdstd.strm
 where 
  a.primary_plan_flag='Y' 
 and ct.EDW_ACTV_IND='Y'
-and res.EDW_ACTV_IND='Y'
+
 order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
 
