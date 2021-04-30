@@ -1,4 +1,3 @@
---215352 2198
 
     select    
               --Key Fields
@@ -64,14 +63,22 @@
              c_class_tbl.instruction_mode,
              (case when regexp_replace(p_class_tbl_se_vw.catalog_nbr, '[^0-9]', '')>=500 
 and  regexp_replace(p_class_tbl_se_vw.catalog_nbr, '[^0-9]', '')<=999 
-and (p_class_tbl_se_vw.subject <> 'LAW' or p_class_tbl_se_vw.UNT_TAKEN >= 2) then 'Y' else 'N' end) as HONORS_EXP
-    from      siscs.p_class_tbl_se_vw_v  p_class_tbl_se_vw
+and (p_class_tbl_se_vw.subject <> 'LAW' or p_class_tbl_se_vw.UNT_TAKEN >= 2) then 'Y' else 'N' end) as HONORS_EXP,
+c_class_tbl.class_type, enrl.GRADING_SCHEME_ENR
+    from      siscs.r_class_tbl_se_vw_rv  p_class_tbl_se_vw
     inner join siscs.c_class_tbl_av c_class_tbl
     on p_class_tbl_se_vw.strm= c_class_tbl.strm
     and p_class_tbl_se_vw.crse_id= c_class_tbl.crse_id
     and p_class_tbl_se_vw.crse_offer_nbr= c_class_tbl.crse_offer_nbr
     and p_class_tbl_se_vw.session_code= c_class_tbl.session_code
     and p_class_tbl_se_vw.class_section= c_class_tbl.class_section
+    INNER JOIN siscs.P_STDNT_ENRL_AV enrl 
+    ON p_class_tbl_se_vw.emplid = enrl.EMPLID 
+    AND p_class_tbl_se_vw.strm = enrl.STRM 
+    AND p_class_tbl_se_vw.class_nbr= enrl.CLASS_NBR 
+    AND p_class_tbl_se_vw.institution=enrl.INSTITUTION 
+    AND p_class_tbl_se_vw.acad_career=enrl.ACAD_CAREER 
+    
     left join (select * from siscs.c_crse_attributes_av where edw_actv_ind='Y' and edw_curr_ind='Y') c_crse_attributes on c_crse_attributes.crse_id = p_class_tbl_se_vw.crse_id
                                        and c_crse_attributes.crse_attr = 'HON'
 
@@ -159,4 +166,7 @@ and (p_class_tbl_se_vw.subject <> 'LAW' or p_class_tbl_se_vw.UNT_TAKEN >= 2) the
                                    )
                 or session_code.effdt is null) 
     and c_class_tbl.edw_actv_ind='Y' and c_class_tbl.edw_curr_ind='Y'
+    and enrl.edw_actv_ind='Y' and enrl.edw_curr_ind='Y'
+--    and enrl.strm=2218
+
   
