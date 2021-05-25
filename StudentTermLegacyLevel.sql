@@ -1,9 +1,10 @@
 --Created on 09/03/2020
 --Created by Di
---Last updated on 03/30/2021
+--Last updated on 05/25/2021
 --Population Included : Records should be same as what's in Student Car Term. Keys on Emplid, STRM, Acad_Career. Only primary plan for the career is included
 --Dependency table :  R_PRIMACY_RV need to be executed prior to this ---
 --add enrollment_career
+-- change population selection criteria, if none of the students plan is set to primary, the record is still bought in but with acad plan/prog, acad_level are set to blank
 with a as 
  ((
  SELECT 
@@ -94,16 +95,17 @@ and P_STDNT_CAR_TERM.acad_career=P_STDNT_ENRL.acad_career
 and P_STDNT_CAR_TERM.institution=P_STDNT_ENRL.institution
 and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
 WHERE T.RNUM=1
---and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
-and T.emplid ='109035815'
+and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
+--and T.emplid ='109035815'
  ) 
  ),
- termlvlenrl as (
+ termlvlenrlprv as (
  
  select a.emplid, a.strm,a.institution,a.acad_level_bot,a.term_descrshort, 
  (case when ordering=1 then 'E' when ordering =2 then 'W' 
  when ordering =3 then 'L' when ordering =4 then 'D' when ordering =5 then 'A' when ordering =6 then 'N' else '' end) as enrollment_status,
- acad_career, primary_car_flag, acad_plan, acad_prog, primary_plan_flag, student_level,enrollment_status as enrollment_career
+ acad_career, primary_car_flag, acad_plan, acad_prog, primary_plan_flag, student_level,enrollment_status as enrollment_career,
+ max(primary_plan_flag) over(partition by a.emplid, a.strm, a.institution, a.acad_career ) as planmax
  from   a 
  inner join (
  select emplid, strm, institution, min(case when enrollment_status='E' then 1 
@@ -115,8 +117,19 @@ when enrollment_status='N' then 6 else 7 end ) as ordering
  from a
  group by emplid, strm, institution ) b
  on a.emplid =b.emplid and a.strm=b.strm and a.institution=b.institution
-)
+),
 
+termlvlenrl as (
+SELECT distinct emplid, strm, institution, acad_level_bot, term_descrshort, enrollment_status, acad_career, primary_car_flag,  Acad_plan, acad_prog, primary_plan_flag,
+student_level,enrollment_career ,1 as src
+FROM termlvlenrlprv
+where planmax ='Y'
+union
+SELECT distinct emplid, strm, institution, acad_level_bot, term_descrshort, enrollment_status, acad_career, primary_car_flag, ' ' as Acad_plan, ' ' as acad_prog, primary_plan_flag,
+' ' as student_level,enrollment_career , 2 as src
+FROM termlvlenrlprv
+where planmax ='N'
+)
 
 
 
@@ -534,8 +547,7 @@ and a.acad_career= acdstd.acad_career
 and a.strm= acdstd.strm
 
 where 
- a.primary_plan_flag='Y' 
+( a.primary_plan_flag='Y' or a.src=2)
 and ct.EDW_ACTV_IND='Y'
 
 order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
-
