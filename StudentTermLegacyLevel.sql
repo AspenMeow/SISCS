@@ -97,7 +97,9 @@ and P_STDNT_CAR_TERM.institution=P_STDNT_ENRL.institution
 and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
 WHERE T.RNUM=1
 --and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
-and T.emplid in ('101684982','102563917','101669215')
+--and T.emplid in ('101684982','102563917','101669215')
+and T.emplid in ('149441813')
+
  ) 
  ),
  termlvlenrlprv as (
@@ -193,11 +195,13 @@ else 'RGAP' end ) as Term_Classif_Code,
 mintermplan  as First_Term_In_Plan,
 (case when honr.stdnt_group is null then 'N' else 'Y' end ) as Honors_College_Member,
 (case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
-when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
+when substr(a.term_descrshort,1,1)='F' and  ( (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Career=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
-else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT') or 
+else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.acad_career ORDER BY  a.emplid,a.acad_career, a.strm ) in ('NEW','CONT') 
+  and lag(a.strm) OVER(PARTITION BY a.emplid , a.ACAD_CAREER  ORDER BY  a.emplid,a.ACAD_CAREER ,a.STRM)=a.strm-3
+) or 
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Career=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Career=a.strm then 'NEW'
@@ -227,11 +231,12 @@ when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
 else 'RGAP' end )   as Term_Classif_Code_CAR_DEGR,
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null or entrycohortlvl.cohort_entry_lvl is null then ' ' else entrycohortlvl.cohort_entry_lvl end) as RPT_COHORT_PRIM_ENTRY,
 (case when substr(a.term_descrshort,1,1)<>'F' or a.Enrollment_status not in ('E','W') or  a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ' '
-when substr(a.term_descrshort,1,1)='F' and  (LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
+when substr(a.term_descrshort,1,1)='F' and  ( ( LAG((case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
 when d.MSU_Atnd_Preced_Flag='Y' then 'RTRN'
-else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT') or 
+else 'RGAP' end ) , 1, '') OVER(PARTITION BY a.emplid , a.student_level ORDER BY  a.emplid,a.student_level, a.strm ) in ('NEW','CONT')
+and lag(a.strm) OVER(PARTITION BY a.emplid , a.student_level  ORDER BY  a.emplid,a.student_level ,a.STRM)=a.strm-3) or 
 (case when a.PRIMARY_CAR_FLAG='N' or a.PRIMARY_CAR_FLAG is null then ''
 when First_Term_Rpt_Level=a.strm and d.Enrld_MSU_Prior='Y' then 'CONT'
 when First_Term_Rpt_Level=a.strm then 'NEW'
@@ -554,5 +559,6 @@ and a.strm= acdstd.strm
 where 
 ( a.primary_plan_flag='Y' or a.src=2)
 and ct.EDW_ACTV_IND='Y'
+
 
 order by a.emplid, a.strm, a.acad_career, a.primary_plan_flag
