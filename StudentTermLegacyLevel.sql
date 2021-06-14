@@ -55,11 +55,12 @@ P_STDNT_CAR_TERM.institution,
 P_STDNT_CAR_TERM.acad_level_bot,
 S_TERM_TBL.descrshort as term_descrshort,
 (case 
-    when P_STDNT_CAR_TERM.ELIG_TO_ENROLL='N' then 'N'
+   
     when P_STDNT_CAR_TERM.withdraw_code='WDR' then 'W'
     when P_STDNT_ENRL.enrl=1 then 'E'
     when P_STDNT_ENRL.waitlist=1 then 'L'
     when P_STDNT_ENRL.drp=1 then 'D'
+     when P_STDNT_CAR_TERM.ELIG_TO_ENROLL='N' then 'N'
    when P_STDNT_ENRL.emplid is null then 'A'
    else ''
 end ) as enrollment_status,
