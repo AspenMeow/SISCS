@@ -246,11 +246,7 @@ else 'RGAP' end ) in ('NEW','CONT') )then 'Y'
 else 'N' end ) as RPT_IPEDS_FALL_COHORT,
 a.enrollment_career
 from termlvlenrl a
-inner join SISCS.P_STDNT_CAR_TERM_V ct
-on a.emplid=ct.emplid
-and a.strm=ct.strm
-and a.institution=ct.institution
-and a.acad_career=ct.acad_career 
+
 left join 
    ( select emplid, institution, student_level,strm,
             COUNT(*) OVER(PARTITION BY emplid, institution, student_level
