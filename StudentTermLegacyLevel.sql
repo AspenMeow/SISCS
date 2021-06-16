@@ -128,10 +128,10 @@ student_level,enrollment_career ,1 as src
 FROM termlvlenrlprv
 where planmax ='Y'
 union
-SELECT distinct emplid, strm, institution, acad_level_bot, term_descrshort, enrollment_status, acad_career, primary_car_flag, ' ' as Acad_plan, ' ' as acad_prog, primary_plan_flag,
+SELECT distinct emplid, strm, institution, acad_level_bot, term_descrshort, enrollment_status, acad_career, nvl(primary_car_flag,' ') AS primary_car_flag, ' ' as Acad_plan, ' ' as acad_prog, nvl( primary_plan_flag,' ') AS primary_plan_flag,
 ' ' as student_level,enrollment_career , 2 as src
 FROM termlvlenrlprv
-where planmax ='N'
+where planmax ='N' or planmax IS NULL
 )
 
 
