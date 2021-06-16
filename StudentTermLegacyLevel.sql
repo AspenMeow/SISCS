@@ -99,7 +99,7 @@ and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
 WHERE T.RNUM=1
 --and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
 --and T.emplid in ('101684982','102563917','101669215')
-and T.emplid in ('149441813')
+and T.emplid in ('160435497')
 
  ) 
  ),
@@ -528,7 +528,15 @@ and milestone.milestone='GCOMPEXAM'
 and milestone.ACAD_CAREER = 'GRAD' 
 and milestone.MILESTONE_COMPLETE = 'Y'
 ---and ct.stdnt_car_nbr=milestone.stdnt_car_nbr
-left join siscs.p_adm_basis_admit_v adm
+left join (
+    SELECT *
+    FROM (
+    SELECT emplid, acad_career, institution, basis_admit_code, ROW_NUMBER() over(PARTITION BY emplid, institution, acad_career ORDER BY  basis_admit_code desc) AS cnt
+    FROM  siscs.p_adm_basis_admit_v
+    )
+    WHERE cnt=1
+
+) adm
 on a.emplid= adm.emplid
 and a.institution= adm.institution
 and a.acad_career= adm.acad_career
