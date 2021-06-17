@@ -97,9 +97,7 @@ and P_STDNT_CAR_TERM.acad_career=P_STDNT_ENRL.acad_career
 and P_STDNT_CAR_TERM.institution=P_STDNT_ENRL.institution
 and P_STDNT_CAR_TERM.strm=P_STDNT_ENRL.strm)T)T
 WHERE T.RNUM=1
---and T.emplid in ('156333912','126863026','156297326','158749061','159690642','108417322','149697444','139244349','105044362','148452186','150387028')
---and T.emplid in ('101684982','102563917','101669215')
-and T.emplid in ('160435497')
+
 
  ) 
  ),
