@@ -399,4 +399,3 @@ and c_ed.edw_actv_ind='Y' and c_ed.edw_curr_ind='Y'
 and c_ed.effdt <= sysdate		
 )		
 or p_namesc.effdt is null )		
-and p_pers_data_effdt.emplid in ('102497123')
